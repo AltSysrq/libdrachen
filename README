@@ -30,9 +30,9 @@ Headers
 A Drachen file begins with the following:
 
 * An NTBS with the value "Drachen", which identifies the file type.
-* An INT with the value 0x01020304, which identifies the machine byte order of
+* An INT with the value 0x03020100, which identifies the machine byte order of
   the encoder for 32-bit integers.
-* A SHORT with the value 0x0506, which identifies the machine byte order of the
+* A SHORT with the value 0x0100, which identifies the machine byte order of the
   encoder for 16-bit integers.
 * An INT indicating the size of each frame in bytes.
 * An array of INTs whose length is equal to the frame size in bytes, indicating

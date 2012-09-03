@@ -15,24 +15,22 @@ extern "C" {
 
 struct drachen_encoder;
 typedef struct drachen_encoder drachen_encoder;
-struct drachen_decoder;
-typedef struct drachen_decoder drachen_decoder;
 
-drachen_encoder* drachen_create_encoder(FILE*, size_t, const uint32_t*);
-drachen_decoder* drachen_create_decoder(FILE*, size_t);
+drachen_encoder* drachen_create_encoder(FILE*, uint32_t, const uint32_t*);
+drachen_encoder* drachen_create_decoder(FILE*, uint32_t);
 
-int drachen_free_encoder(drachen_encoder*);
-int drachen_free_decoder(drachen_decoder*);
+int drachen_free(drachen_encoder*);
 
 int drachen_encode(drachen_encoder*, unsigned char* buffer, const char* name);
-int drachen_decode(unsigned char* buffer, char* name, size_t namelen,
-                   drachen_decoder*);
-int drachen_error(drachen_decoder*);
+int drachen_decode(unsigned char* buffer, char* name, uint32_t namelen,
+                   drachen_encoder*);
+
+const char* drachen_get_error(const drachen_encoder*);
 
 void drachen_make_image_xform_matrix(uint32_t*,
-                                     size_t offset,
-                                     size_t rows,
-                                     size_t columns,
+                                     uint32_t offset,
+                                     uint32_t rows,
+                                     uint32_t columns,
                                      unsigned numComponents,
                                      unsigned blockWidth,
                                      unsigned blockHeight);
