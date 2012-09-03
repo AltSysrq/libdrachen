@@ -1,0 +1,90 @@
+Drachen -- Delta-Rle ArCHive ENcoding
+=====================================
+
+Overview
+--------
+Drachen is a library for quickly compressing very similar frames of equal-sized
+data.
+
+After headers, a Drachen-encoded file consists of one or more frames. Each
+frame consists of a NUL-terminated name, followed data describing how that
+frame changed relative to the previous; the first frame is relative to a
+non-existant frame of all zeroes.
+
+Drachen is designed to maximise the speed of *encoding*, so decoding may be
+slower.
+
+Conventions
+-----------
+A "BYTE" is a single, unsigned octet.
+
+An "NTBS" is a sequence of non-zero bytes terminated by a zero byte, which is
+considered to be a C-style string.
+
+A "SHORT" is a 2-byte unsigned integer in machine byte order.
+
+An "INT" is a 4-byte unsigned integer in machine byte order.
+
+Headers
+-------
+A Drachen file begins with the following:
+
+* An NTBS with the value "Drachen", which identifies the file type.
+* An INT with the value 0x01020304, which identifies the machine byte order of
+  the encoder for 32-bit integers.
+* A SHORT with the value 0x0506, which identifies the machine byte order of the
+  encoder for 16-bit integers.
+* An INT indicating the size of each frame in bytes.
+* An array of INTs whose length is equal to the frame size in bytes, indicating
+  the inverse transformation matrix.
+
+After the headers follows the first frame.
+
+Frames
+------
+A frame begins with an NTBS indicating the name of that frame. After the name
+are any number of encoding elements, which continue until the entire frame has
+been encoded.
+
+Each encoding element begins with a single byte describing how the element is
+encoded. Bits 0 and 1 form a 2-bit integer describing how the length of this
+element is specfied:
+* 0: The element only encodes one byte.
+* 1: Following this byte is another byte, whose value plus 2 is the length of
+  the element.
+* 2: Following this byte is a short, whose value plus 258 is the length of the
+  element.
+* 3: Following this byte is an int whose value is the length of the element.
+
+Bits 2 through 4 describe how any data in the following bytes is compressed:
+* 0: No compression
+* 1: RLE 8-8 (8-bit length, 8-bit datum)
+* 2: RLE 4-8 (4-len 4-len, 8-datum, 8-datum)
+* 3: RLE 2-8 (2-len 2-len 2-len 2-len, 8-datum, 8-datum, 8-datum, 8-datum)
+* 4: RLE 4-4 (4-len 4-datum)
+* 5: RLE 2-6 (2-len 6-datum)
+* 6: RLE 2-2 (2-len 2-len 2-datum 2-datum)
+* 7: All zeros (no data, implicit length)
+
+If bit 5 is set, data smaller than 8-bit in RLE compression are sign-extended
+upon expansion to 8 bits.
+
+If bit 6 is set, a byte follows the length (if any) which is added to every
+input value.
+
+If bit 7 is set, the corresponding bytes from the previous frame are added to
+every input value.
+
+After the element header, possible length, and possible offset, is the element
+payload. The number of bytes in the payload is implicit; the decoder stops once
+it has decoded length bytes.
+
+Before encoding, the input frame is transformed using a transformation matrix,
+which reorders the bytes so that they are better compressed. The reverse
+transformation matrix (in the file header) provides the reverse option: Every
+integer in the array is an index into the decoded frame from where the byte for
+that integeger's index is. Ie,
+----------------
+  for (i = 0; i < size; ++i)
+    output[i] = decoded[xform[i]];
+----------------
