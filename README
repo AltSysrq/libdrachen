@@ -52,7 +52,7 @@ element is specfied:
 * 0: The element only encodes one byte.
 * 1: Following this byte is another byte, whose value plus 2 is the length of
   the element.
-* 2: Following this byte is a short, whose value plus 258 is the length of the
+* 2: Following this byte is a short, whose value plus 259 is the length of the
   element.
 * 3: Following this byte is an int whose value is the length of the element.
 
@@ -63,11 +63,11 @@ Bits 2 through 4 describe how any data in the following bytes is compressed:
 * 3: RLE 2-8 (2-len 2-len 2-len 2-len, 8-datum, 8-datum, 8-datum, 8-datum)
 * 4: RLE 4-4 (4-len 4-datum)
 * 5: RLE 2-6 (2-len 6-datum)
-* 6: RLE 2-2 (2-len 2-len 2-datum 2-datum)
+* 6: HALF (4-datum 4-datum)
 * 7: All zeros (no data, implicit length)
 
-If bit 5 is set, data smaller than 8-bit in RLE compression are sign-extended
-upon expansion to 8 bits.
+If bit 5 is set, data smaller than 8-bit in compression are sign-extended upon
+expansion to 8 bits.
 
 If bit 6 is set, a byte follows the length (if any) which is added to every
 input value.

@@ -12,6 +12,9 @@
 #define DRACHEN_BAD_MAGIC -1
 #define DRACHEN_WRONG_FRAME_SIZE -2
 #define DRACHEN_BAD_XFORM -3
+#define DRACHEN_OVERRUN -4
+#define DRACHEN_PREMATURE_EOF -5
+#define DRACHEN_END_OF_STREAM -6
 
 struct drachen_encoder {
   uint32_t frame_size;
@@ -49,5 +52,24 @@ static inline uint16_t swab16(uint32_t value, const drachen_encoder* enc) {
   return swab16a(value, enc->endian32);
 }
 
+/* Constants for the encoding element header */
+#define EE_LENENC 0x03
+#define EE_LENONE 0x00
+#define EE_LENBYT 0x01
+#define EE_LENSRT 0x02
+#define EE_LENINT 0x03
+#define EE_CMPTYP 0x1C
+#define EE_CMPNON 0x00
+#define EE_CMPR88 0x04
+#define EE_CMPR48 0x08
+#define EE_CMPR28 0x0C
+#define EE_CMPR44 0x10
+#define EE_CMPR26 0x14
+#define EE_CMPHLF 0x18
+#define EE_CMPZER 0x1C
+#define EE_CMP_SHIFT 3
+#define EE_RLESEX 0x20
+#define EE_ININCR 0x40
+#define EE_PRVADD 0x80
 
 #endif /* COMMON_H_ */

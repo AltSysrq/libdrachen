@@ -176,6 +176,10 @@ const char* drachen_get_error(const drachen_encoder* enc) {
       return "File's frame size did not match expectation.";
     case DRACHEN_BAD_XFORM:
       return "File's reverse transform is invalid.";
+    case DRACHEN_OVERRUN:
+      return "Input stream overran stated bounds.";
+    case DRACHEN_PREMATURE_EOF:
+      return "Unexpected end of file.";
     default:
       return "An unknown error occurred.";
   }
