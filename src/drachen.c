@@ -199,3 +199,28 @@ int drachen_free(drachen_encoder* enc) {
   free(enc);
   return 0;
 }
+
+int drachen_error(const drachen_encoder* enc) {
+  return enc->error;
+}
+
+const char* drachen_get_error(const drachen_encoder* enc) {
+  if (enc->error == 0)
+    return NULL;
+  else if (enc->error > 0)
+    return strerror(errno);
+  else switch (enc->error) {
+    case DRACHEN_BAD_MAGIC:
+      return "Invalid magic at start of file.";
+    case DRACHEN_WRONG_FRAME_SIZE:
+      return "File's frame size did not match expectation.";
+    case DRACHEN_BAD_XFORM:
+      return "File's reverse transform is invalid.";
+    default:
+      return "An unknown error occurred.";
+  }
+}
+
+uint32_t drachen_frame_size(const drachen_encoder* enc) {
+  return enc->frame_size;
+}

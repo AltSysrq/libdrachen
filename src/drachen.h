@@ -25,7 +25,9 @@ int drachen_encode(drachen_encoder*, unsigned char* buffer, const char* name);
 int drachen_decode(unsigned char* buffer, char* name, uint32_t namelen,
                    drachen_encoder*);
 
+int drachen_error(const drachen_encoder*);
 const char* drachen_get_error(const drachen_encoder*);
+uint32_t drachen_frame_size(const drachen_encoder*);
 
 void drachen_make_image_xform_matrix(uint32_t*,
                                      uint32_t offset,
