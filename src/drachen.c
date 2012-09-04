@@ -10,6 +10,8 @@
 #include "drachen.h"
 #include "common.h"
 
+#define DEFAULT_BLOCK_SZ 32
+
 /**
  * Creates a drachen_encoder with the given fields.
  *
@@ -23,6 +25,7 @@ drachen_encoder* drachen_alloc_encoder(FILE* file,
   if (!encoder) return NULL;
 
   encoder->frame_size = frame_size;
+  encoder->block_size = DEFAULT_BLOCK_SZ;
   encoder->prev_frame = malloc(frame_size);
   if (!encoder->prev_frame) {
     free(encoder);

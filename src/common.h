@@ -17,7 +17,7 @@
 #define DRACHEN_END_OF_STREAM -6
 
 struct drachen_encoder {
-  uint32_t frame_size;
+  uint32_t frame_size, block_size;
   unsigned char* prev_frame, * curr_frame;
   FILE* file;
   uint32_t* xform;
