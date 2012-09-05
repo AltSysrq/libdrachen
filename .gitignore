@@ -24,3 +24,6 @@ Makefile
 *.lo
 stamp-h1
 drachencode
+test
+tests
+tests.out
