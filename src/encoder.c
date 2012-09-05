@@ -299,3 +299,374 @@ static encoding_method optimal_encoding_method(const unsigned char* data,
 
   return meth;
 }
+
+#define PUTC(out,ch) if (EOF == fputc(ch,out)) return errno
+
+static int compressor_none(FILE* out, const unsigned char* data, uint32_t len) {
+  if (fwrite(data, len, 1, out))
+    return 0;
+  else
+    return errno;
+}
+
+static int compressor_rle88(FILE* out,
+                            const unsigned char* data, uint32_t len) {
+  unsigned char curr = data[0];
+  unsigned runlen = 1, i;
+  for (i = 1; i < len; ++i) {
+    if (runlen == 256 || data[i] != curr) {
+      /* End of this run */
+      PUTC(out, runlen & 0xFF);
+      PUTC(out, curr);
+      curr = data[i];
+      runlen = 1;
+    } else {
+      ++runlen;
+    }
+  }
+
+  /* Finish final run */
+  PUTC(out, runlen & 0xFF);
+  PUTC(out, curr);
+  return 0;
+}
+
+static int compressor_rle48(FILE* out,
+                            const unsigned char* data, uint32_t len) {
+  unsigned char c0 = data[0], c1;
+  unsigned rl0 = 1, rl1, i = 0;
+
+  run0:
+  for (++i; i < len; ++i) {
+    if (rl0 == 16 || data[i] != c0) {
+      rl1 = 1;
+      c1 = data[i];
+      goto run1;
+    } else {
+      ++rl0;
+    }
+  }
+
+  /* Only half a run pair */
+  PUTC(out, rl0 /* Upper bits don't matter */);
+  PUTC(out, c0);
+  return 0;
+
+  run1:
+  for (++i; i < len; ++i) {
+    if (rl1 == 16 || data[i] != c1) {
+      /* Finished with this run pair */
+      PUTC(out, (rl0 & 0xF) | ((rl1 & 0xF) << 4));
+      PUTC(out, c0);
+      PUTC(out, c1);
+      rl0 = 1;
+      c0 = data[i];
+      goto run0;
+    } else {
+      ++rl1;
+    }
+  }
+
+  /* Finish both runs */
+  PUTC(out, (rl0 & 0xF) | ((rl1 & 0xF) << 4));
+  PUTC(out, c0);
+  PUTC(out, c1);
+  return 0;
+}
+
+static int compressor_rle28(FILE* out,
+                            const unsigned char* data, uint32_t len) {
+  unsigned char c0 = data[0], c1, c2, c3;
+  unsigned rl0 = 1, rl1, rl2, rl3, i = 0;
+
+  run0:
+  for (++i; i < len; ++i) {
+    if (rl0 == 4 || data[i] != c0) {
+      rl1 = 1;
+      c1 = data[1];
+      goto run1;
+    } else {
+      ++rl0;
+    }
+  }
+
+  /* Only one of four runs */
+  PUTC(out, rl0 /* Upper bits don't matter */);
+  PUTC(out, c0);
+  return 0;
+
+  run1:
+  for (++i; i < len; ++i) {
+    if (rl1 == 4 || data[i] != c1) {
+      rl2 = 1;
+      c2 = data[i];
+      goto run2;
+    } else {
+      ++rl1;
+    }
+  }
+
+  /* Only two of four runs */
+  PUTC(out, (rl1 << 2) | (rl0 & 0x3));
+  PUTC(out, c0);
+  PUTC(out, c1);
+  return 0;
+
+  run2:
+  for (++i; i < len; ++i) {
+    if (rl2 == 4 || data[i] != c2) {
+      rl3 = 1;
+      c3 = data[i];
+      goto run3;
+    } else {
+      ++rl2;
+    }
+  }
+
+  /* Only three of four runs */
+  PUTC(out, (rl2 << 4) | ((rl1 & 0x3) << 2) | (rl0 & 0x3));
+  PUTC(out, c0);
+  PUTC(out, c1);
+  PUTC(out, c2);
+  return 0;
+
+  run3:
+  for (++i; i < len; ++i) {
+    if (rl3 ==4 || data[i] != c3) {
+      PUTC(out,
+           (rl3 << 6) |
+           ((rl2 & 0x3) << 4) |
+           ((rl1 & 0x3) << 2) |
+           (rl0 & 0x3));
+      PUTC(out, c0);
+      PUTC(out, c1);
+      PUTC(out, c2);
+      PUTC(out, c3);
+
+      rl0 = 1;
+      c0 = data[i];
+      goto run0;
+    } else {
+      ++rl3;
+    }
+  }
+
+  PUTC(out,
+       (rl3 << 6) |
+       ((rl2 & 0x3) << 4) |
+       ((rl1 & 0x3) << 2) |
+       (rl0 & 0x3));
+  PUTC(out, c0);
+  PUTC(out, c1);
+  PUTC(out, c2);
+  PUTC(out, c3);
+
+  return 0;
+}
+
+static int compressor_rle44(FILE* out,
+                            const unsigned char* data, uint32_t len) {
+  unsigned runlength = 1, i = 1;
+  unsigned char curr = data[0];
+
+  for (; i < len; ++i) {
+    if (runlength == 16 || data[i] != curr) {
+      /* End of this run */
+      PUTC(out, ((runlength & 0x0F) | ((curr & 0x0F) << 4)));
+      runlength = 1;
+      curr = data[i];
+    }
+  }
+
+  /* Finish last run */
+  PUTC(out, ((runlength & 0x0F) | ((curr & 0x0F) << 4)));
+  return 0;
+}
+
+static int compressor_rle26(FILE* out,
+                            const unsigned char* data, uint32_t len) {
+  unsigned runlength = 1, i = 1;
+  unsigned char curr = data[0];
+
+  for (; i < len; ++i) {
+    if (runlength == 4 || data[i] != curr) {
+      /* End of this run */
+      PUTC(out, ((runlength & 0x3) | ((curr & 0x3F) << 2)));
+      runlength = 1;
+      curr = data[i];
+    }
+  }
+
+  PUTC(out, ((runlength & 0x3) | ((curr & 0x3F) << 2)));
+
+  return 0;
+}
+
+static int compressor_half(FILE* out,
+                           const unsigned char* data, uint32_t len) {
+  unsigned i;
+  for (i = 0; i + 1 < len; i += 2)
+    PUTC(out, (data[i] & 0x0F) | ((data[i+1] & 0x0F) << 4));
+
+  /* Check for odd trailing byte */
+  if (i < len)
+    PUTC(out, data[i] /* The upper four bits are ignored */);
+
+  return 0;
+}
+
+static int (*const compressors[8])(FILE*, const unsigned char*, uint32_t) = {
+  compressor_none,
+  compressor_rle88,
+  compressor_rle48,
+  compressor_rle28,
+  compressor_rle44,
+  compressor_rle26,
+  compressor_half,
+  /* Should never be called */
+  NULL,
+};
+
+static int encode_one_element(FILE* out,
+                              encoding_method meth,
+                              const unsigned char* data,
+                              const unsigned char* prev,
+                              uint32_t len) {
+  unsigned char len8;
+  uint16_t len16;
+  const unsigned char* data_to_encode;
+  unsigned char* tmp_data = NULL;
+  unsigned i;
+  int status;
+  unsigned char head =
+    (len == 1? EE_LENONE :
+     len <= 258? EE_LENBYT :
+     len <= (65535+259)? EE_LENSRT :
+     EE_LENINT) |
+    meth.compression |
+    (meth.is_signed? EE_RLESEX : 0) |
+    (meth.sub_fixed? EE_ININCR : 0) |
+    (meth.sub_prev ? EE_PRVADD : 0);
+
+  /* Write header */
+  if (EOF == fputc(head, out))
+    return errno;
+
+  /* Write length, if needed */
+  if (len > 1) {
+    if (len <= 258) {
+      len8 = (unsigned char)(len-2);
+      if (!fwrite(&len8, 1, 1, out))
+        return errno;
+    } else if (len <= (65535+259)) {
+      len16 = (uint16_t)(len-259);
+      if (!fwrite(&len16, 2, 1, out))
+        return errno;
+    } else {
+      if (!fwrite(&len, 4, 1, out))
+        return errno;
+    }
+  }
+
+  /* Write offset byte, if used */
+  if (meth.sub_fixed && !fwrite(&meth.fixed_sub, 1, 1, out))
+    return errno;
+
+  /* Write the body, if any.
+   * (EE_CMPZER never has a body).
+   */
+  if (meth.compression != EE_CMPZER) {
+    /* If the input data is modified, create a temporary buffer */
+    if (meth.sub_fixed || meth.sub_prev) {
+      data_to_encode = tmp_data = malloc(len);
+      if (!tmp_data)
+        return ENOMEM;
+
+      memcpy(tmp_data, data, len);
+      if (meth.sub_fixed)
+        for (i = 0; i < len; ++i)
+          tmp_data[i] -= meth.fixed_sub;
+
+      if (meth.sub_prev)
+        for (i = 0; i < len; ++i)
+          tmp_data[i] -= prev[i];
+    } else {
+      /* Use the raw input data */
+      data_to_encode = data;
+    }
+
+    /* Compress the body */
+    status = (*compressors[meth.compression >> EE_CMP_SHIFT])(out,
+                                                              data_to_encode,
+                                                              len);
+    /* Free any scratch space used */
+    if (tmp_data)
+      free(tmp_data);
+
+    /* Fail if the compressor failed. */
+    if (status)
+      return status;
+  }
+
+  return 0;
+}
+
+int drachen_encode(drachen_encoder* enc,
+                   const unsigned char* buffer,
+                   const char* name) {
+  uint32_t start_of_curr, offset, i, bs;
+  const drachen_block_spec* block_size = enc->block_size;
+  encoding_method currmeth, nextmeth;
+
+  if (!fwrite(name, strlen(name)+1, 1, enc->file))
+    return enc->error = errno;
+
+  /* Transform the input frame according to the transformation matrix. */
+  for (i = 0; i < enc->frame_size; ++i)
+    enc->curr_frame[i] = buffer[enc->xform[i]];
+
+  start_of_curr = 0;
+  for (offset = 0; offset < enc->frame_size; offset += bs) {
+    /* Determine the current block size.
+     * This is either the block size for the current segment, or whatever's
+     * left in that segment.
+     */
+    bs = block_size->block_size;
+    if (offset + bs >= block_size->segment_end) {
+      bs = block_size->segment_end - offset;
+      ++block_size;
+    }
+    /* Check for going off the end of the frame */
+    if (offset + bs > enc->frame_size)
+      bs = enc->frame_size - offset;
+
+    nextmeth = optimal_encoding_method(enc->curr_frame+offset,
+                                       enc->prev_frame+offset,
+                                       bs);
+    if (offset == 0)
+      /* First segment */
+      currmeth = nextmeth;
+    else if (memcmp(&currmeth, &nextmeth, sizeof(encoding_method))) {
+      /* Changing encoding method, write the previous */
+      enc->error = encode_one_element(enc->file,
+                                      currmeth,
+                                      enc->curr_frame+start_of_curr,
+                                      enc->prev_frame+start_of_curr,
+                                      offset - start_of_curr);
+      if (enc->error)
+        return enc->error;
+
+      start_of_curr = offset;
+      currmeth = nextmeth;
+    }
+  }
+
+  /* Finish the last segment */
+  enc->error = encode_one_element(enc->file,
+                                  currmeth,
+                                  enc->curr_frame+start_of_curr,
+                                  enc->prev_frame+start_of_curr,
+                                  enc->frame_size - start_of_curr);
+
+  return enc->error;
+}
