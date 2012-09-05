@@ -266,7 +266,7 @@ static int decode_one_element(uint32_t* offset, drachen_encoder* enc) {
   /* Add prev_frame values if set */
   if (prvadd)
     for (i = 0; i < len32; ++i)
-      enc->curr_frame[*offset+i] = enc->prev_frame[*offset+i];
+      enc->curr_frame[*offset+i] += enc->prev_frame[*offset+i];
 
   *offset += len32;
 
