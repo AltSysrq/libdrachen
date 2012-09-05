@@ -385,7 +385,7 @@ static int compressor_rle28(FILE* out,
   for (++i; i < len; ++i) {
     if (rl0 == 4 || data[i] != c0) {
       rl1 = 1;
-      c1 = data[1];
+      c1 = data[i];
       goto run1;
     } else {
       ++rl0;
