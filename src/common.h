@@ -33,10 +33,10 @@ struct drachen_encoder {
 
 static inline uint32_t swab32a(uint32_t value, const unsigned char* shifts) {
   return
-    ((value >> 24) << shifts[0]*8) |
-    ((value >> 16) << shifts[1]*8) |
-    ((value >>  8) << shifts[2]*8) |
-    ((value >>  0) << shifts[3]*8);
+    (((value >>  0) & 0xFF) << shifts[0]*8) |
+    (((value >>  8) & 0xFF) << shifts[1]*8) |
+    (((value >> 16) & 0xFF) << shifts[2]*8) |
+    (((value >> 24) & 0xFF) << shifts[3]*8);
 }
 
 static inline uint32_t swab32(uint32_t value, const drachen_encoder* enc) {
@@ -45,12 +45,12 @@ static inline uint32_t swab32(uint32_t value, const drachen_encoder* enc) {
 
 static inline uint16_t swab16a(uint32_t value, const unsigned char* shifts) {
   return
-    ((value >> 8) << shifts[0]*8) |
-    ((value >> 0) << shifts[1]*8);
+    (((value >> 0) & 0xFF) << shifts[0]*8) |
+    (((value >> 8) & 0xFF) << shifts[1]*8);
 }
 
 static inline uint16_t swab16(uint32_t value, const drachen_encoder* enc) {
-  return swab16a(value, enc->endian32);
+  return swab16a(value, enc->endian16);
 }
 
 /* Constants for the encoding element header */
