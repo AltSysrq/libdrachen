@@ -112,7 +112,9 @@ static encoding_method optimal_encoding_method(const unsigned char* data,
    * (Right now, some of these cases are redundant, but that could change
    * later).
    */
-  if (!uranz || !uranp || !sranz || !sranp) {
+  if (uranz == 1 || uranp == 1 || sranz == 1 || sranp == 1) {
+    /* Subtract one from each to make the below code more compact */
+    --uranz, --uranp, --sranz, --sranp;
     meth.compression = EE_CMPZER;
     meth.is_signed = (!sranz || !sranp);
     meth.sub_prev = (!uranp || !sranp);
