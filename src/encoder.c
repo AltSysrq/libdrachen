@@ -100,6 +100,7 @@ static encoding_method optimal_encoding_method(const unsigned char* data,
   unsigned expected_len, other_len, runs, i;
   encoding_method meth;
   memset(zero, 0, len);
+  memset(&meth, 0, sizeof(meth));
 
   uranz = unsigned_stats(&uminz, &umedz, &umaxz, data, zero, len);
   uranp = unsigned_stats(&uminp, &umedp, &umaxp, data, prev, len);
@@ -477,6 +478,8 @@ static int compressor_rle44(FILE* out,
       PUTC(out, ((runlength & 0x0F) | ((curr & 0x0F) << 4)));
       runlength = 1;
       curr = data[i];
+    } else {
+      ++runlength;
     }
   }
 
@@ -496,6 +499,8 @@ static int compressor_rle26(FILE* out,
       PUTC(out, ((runlength & 0x3) | ((curr & 0x3F) << 2)));
       runlength = 1;
       curr = data[i];
+    } else {
+      ++runlength;
     }
   }
 
