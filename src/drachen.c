@@ -155,7 +155,7 @@ drachen_encoder* drachen_create_decoder(FILE* in,
 
 int drachen_free(drachen_encoder* enc) {
   int err;
-  if (err = fclose(enc->file))
+  if (enc->file && (err = fclose(enc->file)))
     return err;
 
   free(enc->prev_frame);
