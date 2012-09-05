@@ -118,7 +118,7 @@ static encoding_method optimal_encoding_method(const unsigned char* data,
     meth.compression = EE_CMPZER;
     meth.is_signed = (!sranz || !sranp);
     meth.sub_prev = (!uranp || !sranp);
-    meth.sub_fixed = (uminz || uminp || sminz || sminp);
+    meth.sub_fixed = (uminz && uminp && sminz && sminp);
     if (!uranz)
       meth.fixed_sub = uminz;
     else if (!uranp)
