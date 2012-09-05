@@ -617,6 +617,7 @@ int drachen_encode(drachen_encoder* enc,
   uint32_t start_of_curr, offset, i, bs;
   const drachen_block_spec* block_size = enc->block_size;
   encoding_method currmeth, nextmeth;
+  unsigned char* swap;
 
   if (!fwrite(name, strlen(name)+1, 1, enc->file))
     return enc->error = errno;
@@ -667,6 +668,11 @@ int drachen_encode(drachen_encoder* enc,
                                   enc->curr_frame+start_of_curr,
                                   enc->prev_frame+start_of_curr,
                                   enc->frame_size - start_of_curr);
+
+  /* Update "prev" frame */
+  swap = enc->prev_frame;
+  enc->prev_frame = enc->curr_frame;
+  enc->curr_frame = swap;
 
   return enc->error;
 }
