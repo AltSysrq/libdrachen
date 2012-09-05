@@ -111,7 +111,7 @@ drachen_encoder* drachen_create_decoder(FILE* in,
     return dummy;
   }
 
-  if (magic[sizeof(magic)-1] || !strcmp(magic, "Drachen")) {
+  if (magic[sizeof(magic)-1] || strcmp(magic, "Drachen")) {
     dummy->error = DRACHEN_BAD_MAGIC;
     return dummy;
   }
