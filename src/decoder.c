@@ -25,7 +25,7 @@ static int decompress_zero(unsigned char* dst, unsigned char* end,
 }
 
 #define RLE(runlength,datum) \
-  if (((unsigned)runlength) > dst-end) return DRACHEN_OVERRUN; \
+  if (((unsigned)runlength) > end-dst) return DRACHEN_OVERRUN; \
   memset(dst, datum, runlength); \
   dst += runlength
 
@@ -248,7 +248,7 @@ static int decode_one_element(uint32_t* offset, drachen_encoder* enc) {
   }
 
   /* Ensure that the length is sane */
-  if (*offset + len32 >= enc->frame_size)
+  if (*offset + len32 > enc->frame_size)
     return DRACHEN_OVERRUN;
 
   /* Decompress */

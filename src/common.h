@@ -68,7 +68,7 @@ static inline uint16_t swab16(uint32_t value, const drachen_encoder* enc) {
 #define EE_CMPR26 0x14
 #define EE_CMPHLF 0x18
 #define EE_CMPZER 0x1C
-#define EE_CMP_SHIFT 3
+#define EE_CMP_SHIFT 2
 #define EE_RLESEX 0x20
 #define EE_ININCR 0x40
 #define EE_PRVADD 0x80
