@@ -196,12 +196,12 @@ static encoding_method optimal_encoding_method(const unsigned char* data,
       meth.sub_fixed = !!uminp;
       meth.fixed_sub = uminp;
     } else if (sranz <= 64 && (sminp != 0 || sranp > 64)) {
-      meth.is_signed = 1;
+      meth.is_signed = !sminz;
       meth.sub_prev = 0;
       meth.sub_fixed = !!sminz;
       meth.fixed_sub = sminz;
     } else {
-      meth.is_signed = 1;
+      meth.is_signed = !sminp;
       meth.sub_prev = 1;
       meth.sub_fixed = !!sminp;
       meth.fixed_sub = sminp;
@@ -258,12 +258,12 @@ static encoding_method optimal_encoding_method(const unsigned char* data,
     meth.sub_fixed = !!uminp;
     meth.fixed_sub = uminp;
   } else if (sranz <= 16 && (sminp != 0 || sranp > 16)) {
-    meth.is_signed = 1;
+    meth.is_signed = !sminz;
     meth.sub_prev = 0;
     meth.sub_fixed = !!sminz;
     meth.fixed_sub = sminz;
   } else {
-    meth.is_signed = 1;
+    meth.is_signed = !sminp;
     meth.sub_prev = 1;
     meth.sub_fixed = !!sminp;
     meth.fixed_sub = sminp;

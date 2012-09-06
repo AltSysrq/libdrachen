@@ -148,7 +148,7 @@ static int decompress_rle26(unsigned char* dst, unsigned char* end,
 
     rl = (value & 0x3);
     if (rl == 0) rl = 4;
-    datum = (rl >> 2) & 0x3F;
+    datum = (value >> 2) & 0x3F;
     if (sex && (datum & 0x20))
       datum |= 0xC0;
     RLE(rl, datum);
