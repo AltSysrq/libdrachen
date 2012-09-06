@@ -80,6 +80,8 @@ static unsigned rle_count_runs(const unsigned char* data, unsigned len,
       ++cnt;
       run = data[i];
       runlen = 1;
+    } else {
+      ++runlen;
     }
   }
 
