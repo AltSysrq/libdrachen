@@ -12,6 +12,8 @@
 #include "drachen.h"
 #include "common.h"
 
+#include "unlockio.h"
+
 static unsigned unsigned_stats(unsigned* minout,
                                unsigned* median,
                                unsigned* maxout,
