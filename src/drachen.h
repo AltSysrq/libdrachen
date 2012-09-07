@@ -37,11 +37,11 @@ uint32_t drachen_frame_size(const drachen_encoder*);
 
 void drachen_make_image_xform_matrix(uint32_t*,
                                      uint32_t offset,
+                                     uint32_t cols,
                                      uint32_t rows,
-                                     uint32_t columns,
-                                     unsigned numComponents,
-                                     unsigned blockWidth,
-                                     unsigned blockHeight);
+                                     unsigned num_components,
+                                     unsigned block_width,
+                                     unsigned block_height);
 
 #if 0
 {
