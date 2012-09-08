@@ -13,6 +13,14 @@ extern "C" {
 }
 #endif
 
+/* Error codes specific to drachen */
+#define DRACHEN_BAD_MAGIC -1
+#define DRACHEN_WRONG_FRAME_SIZE -2
+#define DRACHEN_BAD_XFORM -3
+#define DRACHEN_OVERRUN -4
+#define DRACHEN_PREMATURE_EOF -5
+#define DRACHEN_END_OF_STREAM -6
+
 struct drachen_encoder;
 typedef struct drachen_encoder drachen_encoder;
 

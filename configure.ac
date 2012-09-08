@@ -11,9 +11,9 @@ AM_MAINTAINER_MODE
 
 AC_PROG_CC
 
-AC_CHECK_HEADERS([inttypes.h stdlib.h])
+AC_CHECK_HEADERS([inttypes.h stdlib.h getopt.h])
 
-AC_CHECK_FUNCS([memset strerror])
+AC_CHECK_FUNCS([memset strerror getopt_long])
 
 dnl Don't need AC_FUNC_MALLOC, because we don't call it with 0
 dnl Don't need AC_PROG_CXX, nothing is in C++
