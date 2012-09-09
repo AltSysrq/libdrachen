@@ -17,5 +17,8 @@ for suite in `ls tests.input`; do
     echo " success."
   else
     echo " FAILED!"
+    exit 1
   fi
 done
+
+exit 0
