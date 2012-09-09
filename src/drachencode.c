@@ -236,7 +236,7 @@ int main(int argc, char*const* argv) {
       return (opt == 'h'? 0 : 255);
 
     case 'V':
-      puts(PACKAGE_STRING);
+      puts("drachencode (" PACKAGE_STRING ")");
       return 0;
 
     case 'b':
