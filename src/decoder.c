@@ -248,7 +248,7 @@ static int decode_one_element(uint32_t* offset, drachen_encoder* enc) {
   }
 
   /* Ensure that the length is sane */
-  if (*offset + len32 > enc->frame_size)
+  if (len32 > enc->frame_size - *offset)
     return DRACHEN_OVERRUN;
 
   /* Decompress */
