@@ -8,6 +8,7 @@ for suite in `ls tests.input`; do
   cd ../..
   mkdir -p tests.out/$suite
   cd tests.out/$suite
+  rm -f *
   ../../src/drachencode -df ../../test
   actual_sum=`cat * | md5sum | cut -d ' ' -f 1`
   cd ../..
