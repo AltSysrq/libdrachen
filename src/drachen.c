@@ -2,6 +2,7 @@
 #include <config.h>
 #endif
 
+#include <assert.h>
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
@@ -207,12 +208,13 @@ void drachen_make_image_xform_matrix(uint32_t* xform,
                                      unsigned block_width,
                                      unsigned block_height) {
   uint32_t component_offsets[num_components];
-  uint32_t i, c, bx, by, px, py,
-    nbx = block_width / cols, nby = block_height / rows;
+  uint32_t i, c, bx, by, px, py, nbx, nby, ix;
 
   /* Reduce block sizes until they are evenly divisible into the full size. */
   while (cols % block_width) --block_width;
   while (rows % block_height)--block_height;
+  nbx = cols / block_width;
+  nby = rows / block_height;
 
   for (i = 0; i < offset; ++i)
     xform[i] = i;
@@ -226,11 +228,12 @@ void drachen_make_image_xform_matrix(uint32_t* xform,
       for (py = 0; py < block_height; ++py) {
         for (px = 0; px < block_width; ++px) {
           for (c = 0; c < num_components; ++c) {
-            xform[i+component_offsets[c]] =
-              c + num_components*(bx*block_width + px +
-                                  (by*block_height + py)*cols);
+            ix = i++ + offset;
+            xform[ix] =
+              component_offsets[c] +
+              bx*block_width + px +
+              (by*block_height + py)*cols;
           }
-          ++i;
         }
       }
     }

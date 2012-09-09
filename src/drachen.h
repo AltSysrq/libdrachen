@@ -77,7 +77,7 @@ typedef struct {
  *
  * A transformation matrix is an array which maps data as such:
  *   for (i = 0; i < frame_size; ++i)
- *     destination[i] = source[transform[i]];
+ *     destination[transform[i]] = source[i];
  * The default transformation matrix is the identity matrix; that is, it results
  * in a simple copy of the source data.
  */
