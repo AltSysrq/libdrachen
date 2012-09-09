@@ -206,6 +206,13 @@ void drachen_make_image_xform_matrix(uint32_t*,
                                      unsigned block_width,
                                      unsigned block_height);
 
+/**
+ * Zeroes out the "previous frame" for the given encoder.
+ *
+ * This is only "useful" for producing interesting effects on decoding.
+ */
+void drachen_zero_prev(drachen_encoder*, uint32_t off);
+
 #if 0
 {
 #endif

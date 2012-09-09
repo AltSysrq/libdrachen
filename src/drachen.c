@@ -241,3 +241,7 @@ void drachen_make_image_xform_matrix(uint32_t* xform,
     }
   }
 }
+
+void drachen_zero_prev(drachen_encoder* enc, uint32_t off) {
+  memset(enc->prev_frame+off, 0, enc->frame_size - off);
+}

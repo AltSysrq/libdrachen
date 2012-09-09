@@ -23,6 +23,7 @@
 
 /* Command-line options (initialised to 0) */
 static int co_is_encoding, co_is_decoding, co_dryrun;
+static int co_zero_frames;
 static const char* co_primary_filename;
 static const char*const* co_encoding_input_files;
 static unsigned co_num_encoding_input_files;
@@ -108,7 +109,7 @@ static inline void l_debug(const char* message) {
 
 static int do_encode(void), do_decode(void);
 
-static const char short_options[] = "hfo:O:X:R:C:W:H:b:n:vtwedD";
+static const char short_options[] = "hfo:O:X:R:C:W:H:b:n:vtwedDz";
 #ifdef HAVE_GETOPT_LONG
 static const struct option long_options[] = {
   { "block-size",          1, NULL, 'b' },
@@ -128,6 +129,7 @@ static const struct option long_options[] = {
   { "output",              0, NULL, 'o' },
   { "show-timing",         0, NULL, 't' },
   { "verbose",             0, NULL, 'v' },
+  { "zero-frames",         0, NULL, 'z' },
   {0},
 };
 #endif
@@ -206,6 +208,9 @@ static const char*const usage_statement =
   "    Show timing and speed statistics.\n"
   "-v, --verbose\n"
   "    Print more messages. Each use of this option increases the verbosity.\n"
+  "-z, --zero-frames\n"
+  "    On decoding, pretend the previous frame, starting at img-offset, is\n"
+  "    entirely zero. This has interesting effects for video.\n"
   ;
 
 int main(int argc, char*const* argv) {
@@ -291,6 +296,10 @@ int main(int argc, char*const* argv) {
       ++co_verbosity;
       break;
 
+    case 'z':
+      co_zero_frames = 1;
+      break;
+
     default:
       fprintf(stderr, "%s: FATAL: Unknown \"known\" option: %c\n",
               co_this, (char)opt);
@@ -304,8 +313,9 @@ int main(int argc, char*const* argv) {
     return 255;
   }
 
-  if ((co_image_nc || co_image_nr || co_image_bw || co_image_bh ||
-        co_image_off || co_image_comps) &&
+  if (co_is_encoding &&
+      (co_image_nc || co_image_nr || co_image_bw || co_image_bh ||
+       co_image_off || co_image_comps) &&
       !(co_image_nc && co_image_nr && co_image_bw && co_image_bh)) {
     l_error("Either no image options, or at least --img-num-cols,\n"
             "--img-num-rows, --img-block-width, and --img-block-height\n"
@@ -689,6 +699,9 @@ int do_decode(void) {
       l_errore("<unknown filename>", enc);
       goto finish;
     }
+
+    if (co_zero_frames)
+      drachen_zero_prev(enc, co_image_off);
 
     l_reportf("%5d %s", current_frame, filename);
     if (co_sequential_output_name) {
