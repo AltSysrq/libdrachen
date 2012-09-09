@@ -33,6 +33,8 @@ static unsigned co_block_size;
 static int co_force;
 static const char* co_sequential_output_name;
 
+static unsigned co_begin, co_end, co_stride;
+
 static int co_verbosity, co_timing_statistics, co_nowarn;
 
 static const char* co_this;
@@ -109,13 +111,15 @@ static inline void l_debug(const char* message) {
 
 static int do_encode(void), do_decode(void);
 
-static const char short_options[] = "hVfo:O:X:R:C:W:H:b:n:vtwedDz";
+static const char short_options[] = "hVfo:O:X:R:C:W:H:b:n:a:z:s:vtwedDZ";
 #ifdef HAVE_GETOPT_LONG
 static const struct option long_options[] = {
+  { "begin",               1, NULL, 'a' },
   { "block-size",          1, NULL, 'b' },
   { "decode",              0, NULL, 'd' },
   { "dry-run",             0, NULL, 'D' },
   { "encode",              0, NULL, 'e' },
+  { "end",                 1, NULL, 'z' },
   { "force",               0, NULL, 'f' },
   { "help",                0, NULL, 'h' },
   { "img-block-height",    1, NULL, 'H' },
@@ -128,9 +132,10 @@ static const struct option long_options[] = {
   { "numeric-output-fmt",  1, NULL, 'n' },
   { "output",              0, NULL, 'o' },
   { "show-timing",         0, NULL, 't' },
+  { "stride",              1, NULL, 's' },
   { "verbose",             0, NULL, 'v' },
   { "version",             0, NULL, 'V' },
-  { "zero-frames",         0, NULL, 'z' },
+  { "zero-frames",         0, NULL, 'Z' },
   {0},
 };
 #endif
@@ -150,14 +155,16 @@ static void uint_arg_or_die(unsigned* dst,
 }
 
 static const char*const usage_statement =
-"Usage: drachencode -e [-fvtwD] [image-opts] [-b blk-sz] -o outfile infiles...\n"
-"       drachencode -d [-fvtwD] [-n format] [infile]\n"
+"Usage: drachencode -e [-fvtwD] [parameters] -o outfile infiles...\n"
+"       drachencode -d [-fvtwDZ] [parameters] [-n format] [infile]\n"
 "Encodes or decodes libdrachen files from or into individual named files.\n"
 "\n"
 "All options are listed below.\n"
 #ifndef HAVE_GETOPT_LONG
   "WARNING: Long options are not supported on your system.\n"
 #endif
+  "-a, --begin=index\n"
+  "    When decoding, do not output frames before the index'th one.\n"
   "-b, --block-size=size\n"
   "    Sets the block size for encoding, in bytes.\n"
   "    Block size does not significantly affect encoding speed (except for\n"
@@ -171,6 +178,8 @@ static const char*const usage_statement =
   "-e, --encode\n"
   "    Perform encoding. This option is mutually exclusive with --decode;\n"
   "    exactly one of the two must be specified.\n"
+  "-z, --end=index\n"
+  "    When decoding, do not output frames at or after the index'th one.\n"
   "-f, --force\n"
   "    On decoding, allow overwriting of files. On encoding, allow implicitly\n"
   "    writing to standard output (this makes --output optional).\n"
@@ -207,11 +216,14 @@ static const char*const usage_statement =
   "    \"-\" means to use standard output, even if --force was not given.\n"
   "-t, --show-timing\n"
   "    Show timing and speed statistics.\n"
+  "-s, --stride=stride\n"
+  "    On decoding, only output frames whose index is evenly divisible by\n"
+  "    stride.\n"
   "-v, --verbose\n"
   "    Print more messages. Each use of this option increases the verbosity.\n"
   "-V, --version\n"
   "    Print version number and exit.\n"
-  "-z, --zero-frames\n"
+  "-Z, --zero-frames\n"
   "    On decoding, pretend the previous frame, starting at img-offset, is\n"
   "    entirely zero. This has interesting effects for video.\n"
   ;
@@ -303,8 +315,20 @@ int main(int argc, char*const* argv) {
       ++co_verbosity;
       break;
 
-    case 'z':
+    case 'Z':
       co_zero_frames = 1;
+      break;
+
+    case 'a':
+      uint_arg_or_die(&co_begin, "begin");
+      break;
+
+    case 'z':
+      uint_arg_or_die(&co_end, "end");
+      break;
+
+    case 's':
+      uint_arg_or_die(&co_stride, "stride");
       break;
 
     default:
@@ -690,7 +714,7 @@ int do_decode(void) {
     goto finish;
   }
 
-  for (current_frame = 0; ; ++current_frame) {
+  for (current_frame = 0; !co_end || current_frame < co_end; ++current_frame) {
     dec_start = clock();
     status = drachen_decode(buffer, filename, sizeof(filename), enc);
     dec_end = clock();
@@ -710,19 +734,22 @@ int do_decode(void) {
     if (co_zero_frames)
       drachen_zero_prev(enc, co_image_off);
 
-    l_reportf("%5d %s", current_frame, filename);
-    if (co_sequential_output_name) {
-      snprintf(filename, sizeof(filename),
-               co_sequential_output_name, current_frame);
-      l_reportf(" -> %s", filename);
-    }
-    l_reportf("\n");
-
     if (co_timing_statistics)
       l_report_extraf("File %s decoded in %u ms\n", filename,
                       (unsigned)((dec_end-dec_start)*1000/CLOCKS_PER_SEC));
 
-    if (!co_dryrun) {
+    if (!co_dryrun &&
+        current_frame >= co_begin &&
+        (!co_end || current_frame < co_end) &&
+        (!co_stride || current_frame % co_stride == 0)) {
+      l_reportf("%5d %s", current_frame, filename);
+      if (co_sequential_output_name) {
+        snprintf(filename, sizeof(filename),
+                 co_sequential_output_name, current_frame);
+        l_reportf(" -> %s", filename);
+      }
+      l_reportf("\n");
+
       outfile = fopen(filename, co_force? "wb" : "wbx");
       if (!outfile) {
         l_sysferr("Could not open output file", filename);
