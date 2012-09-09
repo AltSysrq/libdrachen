@@ -109,7 +109,7 @@ static inline void l_debug(const char* message) {
 
 static int do_encode(void), do_decode(void);
 
-static const char short_options[] = "hfo:O:X:R:C:W:H:b:n:vtwedDz";
+static const char short_options[] = "hVfo:O:X:R:C:W:H:b:n:vtwedDz";
 #ifdef HAVE_GETOPT_LONG
 static const struct option long_options[] = {
   { "block-size",          1, NULL, 'b' },
@@ -129,6 +129,7 @@ static const struct option long_options[] = {
   { "output",              0, NULL, 'o' },
   { "show-timing",         0, NULL, 't' },
   { "verbose",             0, NULL, 'v' },
+  { "version",             0, NULL, 'V' },
   { "zero-frames",         0, NULL, 'z' },
   {0},
 };
@@ -208,6 +209,8 @@ static const char*const usage_statement =
   "    Show timing and speed statistics.\n"
   "-v, --verbose\n"
   "    Print more messages. Each use of this option increases the verbosity.\n"
+  "-V, --version\n"
+  "    Print version number and exit.\n"
   "-z, --zero-frames\n"
   "    On decoding, pretend the previous frame, starting at img-offset, is\n"
   "    entirely zero. This has interesting effects for video.\n"
@@ -229,8 +232,12 @@ int main(int argc, char*const* argv) {
     case '?':
     case ':':
     case 'h':
-      fputs(usage_statement, stderr);
+      fputs(usage_statement, opt == 'h'? stdout : stderr);
       return (opt == 'h'? 0 : 255);
+
+    case 'V':
+      puts(PACKAGE_STRING);
+      return 0;
 
     case 'b':
       uint_arg_or_die(&co_block_size, "block-size");
