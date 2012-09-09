@@ -1,0 +1,139 @@
+Drachen File Format Specification, version 1
+============================================
+
+Overview
+--------
+This file documents the format of Delta-Rle ArCHive ENcoding; more
+specifically, it describes how an encoded file describes the original set of
+frames; that is, it specifies the decoder. There is no specification for an
+encoder, other than that it's output must be reversible to the original frames
+by a conforming decoder.
+
+Definitions
+-----------
+A ``byte'' refers to a single octet, treated as an unsigned integer. The byte is
+considered atomic; bit order within is not considered in this document.
+
+``Machine byte order'' refers to whatever byte order the encoder of a file chose
+to use (generally the actual byte order of its architecture).
+
+``Short'' and ``int'' refer to unsigned 2-byte and 4-byte integers in machine
+byte order, respecfively.
+
+An ``NTBS'' is a sequence of zero or more non-zero bytes, followed by a byte
+whose value is zero. The sequence before the zero-byte is treated as a string.
+
+A ``frame'' is a collection of arbitrary bytes. All frames within a Drachen file
+are of the same size.
+
+The ``previous frame'' refers to the most recently decoded frame, or, if the
+frame being decoded is the first frame, a non-existent frame composed entirely
+of zero-bytes.
+
+File Headers
+------------
+Every Drachen file begins with the following header data.
+
+An NTBS with the value "Drachen" (8 bytes). This string identifies the likely
+type of the file, allowing third parties to determine what the file is, and for
+the decoder to stop quickly on most non-Drachen files. (Obviously, the decoder
+cannot trust that it will read an NTBS at all.)
+
+An int with the value 0x03020100. Each byte within the int represents the byte
+offset after translation into machine byte order; this allows the decoder to
+convert input ints into its own architecture byte order.
+
+A short with the value 0x0100. Each byte within the short represents the byte
+offset after translation into machine byte order; this allows the decoder to
+convert input shorts into its own architecture byte order.
+
+An int indicating the size of each frame.
+
+An array of ints specifying the reverse transformation matrix for
+decoding. Each element indicates the index in the decoded, untransformed frame
+from which to get the byte for the location corresponding to that element. The
+decoder may use code similar to:
+----------------
+for (i = 0; i < frame_size; ++i)
+  destination[i] = source[reverse_transformation_matrix[i]];
+----------------
+It is an error if any int refers to an index greater than or equal to the frame
+size. The decoder may ignore singular tranforms if it is not at risk of
+emitting uninitialised data due to untouched bytes.
+
+The first frame begins immediately after these headers.
+
+Frames
+------
+Each frame begins with an NTBS indicating the name of the frame. The name is
+not guaranteed to be unique within the file, or to be a valid filename. The
+decoder must use caution when using these names as filenames.
+
+Following the name is any number of encoding segments. The end of the frame
+occurs after the encoding segment which encodes the final byte of the frame.
+
+Encoding Segments
+-----------------
+An encoding segment consists of one to six bytes of header followed by zero or
+more bytes of payload.
+
+The first byte of the header (called the ``descriptor'') indicates how to
+interpret the rest of the segment.
+
+Bits 0 and 1 (`descriptor & 0x03`) indicate how the length is
+encoded. ``Length'' refers to the number of bytes encoded by the segment,
+rather than the length of its payload.
+
+* 0: The element encodes exactly one byte.
+* 1: The length is stored in a byte following the descriptor. This byte
+  indicates the length minus two. (Thus, it encodes the range 2 through 258.)
+* 2: The length is stored in a short following the descriptor. This short
+  indicates the length minus 259. (Thus, it encodes the range 259 through
+  65794).
+* 3: The length is stored in an int following the descriptor. This int
+  indicates the exact length.
+
+Bits 2 through 4 (`(descriptor & 0x1C) >> 2`) indicate how the payload is
+compressed. ``Structures'' described below repeat until the entire segment is
+generated. In all RLE cases, it is an error if the run-length of a structure
+would run beyond the end of the encoding segment.
+
+* 0: No compression; copy the payload verbatim.
+* 1: RLE 8-8. Structure is a ``Count'' byte followed by a ``Datum''
+  byte. Datum is output Count times, treating Count as 256 if it was 0.
+* 2: RLE 4-8. Structure is a ``Count'' byte followed by one or two ``Datum''
+  (``First'' and ``Second'') bytes. First is output a number of times specified
+  by the lower nybble of Count, or 16 if that value would have been
+  zero. Second is output a number of times specified by the upper nybble of
+  Count, or 16 if it would have been zero. Second is neither output nor even
+  read if outputing First fills the current encoding segment.
+* 3: RLE 2-8. Same as RLE 4-8, except that up to four Datum bytes follow, and
+  each count is stored in successively higher bit pairs in Count, treating them
+  as 4 if they are 0.
+* 4: RLE 4-4. For each byte, output `byte >> 4` a number of times indicated by
+  `byte & 0xF`, or 16 if that value is zero. This is sensitive to sign
+  extension.
+* 5: RLE 2-6. For each byte, output `byte >> 2` a number of times indicated by
+  `byte & 0x3`, or 4 if that value is zero. This is sensitive to sign
+  extension.
+* 6: HALF. For each byte, output the `byte & 0xF`. If that did not fill the
+  current encoding segment, output `byte >> 4`. This is sensitive to sign
+  extension. If the length is odd, the upper nybble of the last byte in the
+* encoding segment has no effect.
+* 7: ZERO. Output zeros until the current encoding segment is full.
+
+Bit 5 indicates whether less-than-8-bit compressions sign-extend their
+outputs. For example, using HALF decompression on `1F` results in `01-0F` if
+this bit is zero, and `01-FF` if it is one.
+
+If bit 6 is set, a byte follows the length (or the descriptor, if there is no
+length). This byte is implicitly added to the output of decompression.
+
+If bit 7 is set, every byte output by decompression is added with the value of
+the corresponding byte in the previous frame.
+
+End of File
+-----------
+If the end of file is encountered when the name of a frame was expected, the
+end of the frame stream has been reached. It is an error to encounter end of
+file anywhere else.
