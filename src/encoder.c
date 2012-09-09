@@ -113,25 +113,25 @@ static encoding_method optimal_encoding_method(const unsigned char* data,
 
   /* First check for the best case, where range is one (which means we can use
    * zero compression).
-   *
-   * (Right now, some of these cases are redundant, but that could change
-   * later).
    */
   if (uranz == 1 || uranp == 1 || sranz == 1 || sranp == 1) {
-    /* Subtract one from each to make the below code more compact */
-    --uranz, --uranp, --sranz, --sranp;
     meth.compression = EE_CMPZER;
-    meth.is_signed = (!sranz || !sranp);
-    meth.sub_prev = (!uranp || !sranp);
-    meth.sub_fixed = (uminz && uminp && sminz && sminp);
-    if (!uranz)
+    if (uranz == 1) {
+      meth.is_signed = 0;
+      meth.sub_prev = 0;
+      meth.sub_fixed = !!uminz;
       meth.fixed_sub = uminz;
-    else if (!uranp)
+    } else if (uranp == 1) {
+      meth.is_signed = 0;
+      meth.sub_prev = 1;
+      meth.sub_fixed = !!uminp;
       meth.fixed_sub = uminp;
-    else if (!sranz)
-      meth.fixed_sub = sminz;
-    else
-      meth.fixed_sub = sminp;
+    } else {
+      /* Signed should never occur, since it is always equivalent to unsigned
+       * for zero bits of information.
+       */
+      assert(0);
+    }
 
     return meth;
   }
