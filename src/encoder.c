@@ -90,6 +90,31 @@ static unsigned rle_count_runs(const unsigned char* data, unsigned len,
   return cnt;
 }
 
+static unsigned rle_count_runs_max(unsigned* longest_run,
+                                   const unsigned char* data, unsigned len,
+                                   unsigned maxrun) {
+  unsigned cnt = 1, runlen = 1;
+  unsigned char run = data[0];
+  unsigned i;
+  *longest_run = 0;
+  for (i = 1; i < len; ++i) {
+    if (runlen == maxrun || data[i] != run) {
+      ++cnt;
+      run = data[i];
+      if (runlen > *longest_run)
+        *longest_run = runlen;
+      runlen = 1;
+    } else {
+      ++runlen;
+    }
+  }
+
+  if (runlen > *longest_run)
+    *longest_run = runlen;
+
+  return cnt;
+}
+
 static encoding_method optimal_encoding_method(const unsigned char* data,
                                                const unsigned char* prev,
                                                unsigned len) {
@@ -101,7 +126,7 @@ static encoding_method optimal_encoding_method(const unsigned char* data,
   unsigned uminz, uminp, umedz, umedp, umaxz, umaxp, uranz, uranp;
   signed   sminz, sminp, smedz, smedp, smaxz, smaxp;
   unsigned sranz, sranp;
-  unsigned expected_len, other_len, runs, i;
+  unsigned expected_len, other_len, runs, longest_run, i;
   encoding_method meth;
   memset(zero, 0, len);
   memset(&meth, 0, sizeof(meth));
@@ -159,14 +184,16 @@ static encoding_method optimal_encoding_method(const unsigned char* data,
       test_data = data;
 
     /* See if RLE8-8 uses fewer bytes. */
-    other_len = 2*rle_count_runs(test_data, len, 256);
+    runs = rle_count_runs_max(&longest_run, test_data, len, 256);
+    other_len = 2*runs;
     if (other_len < expected_len) {
       meth.compression = EE_CMPR88;
       expected_len = other_len;
     }
 
     /* RLE 4-8 */
-    runs = rle_count_runs(test_data, len, 16);
+    if (longest_run > 16)
+      runs = rle_count_runs(test_data, len, 16);
     other_len = runs + ceildiv(runs,2);
     if (other_len < expected_len) {
       meth.compression = EE_CMPR48;
@@ -174,7 +201,8 @@ static encoding_method optimal_encoding_method(const unsigned char* data,
     }
 
     /* RLE 2-8 */
-    runs = rle_count_runs(test_data, len, 4);
+    if (longest_run > 4)
+      runs = rle_count_runs(test_data, len, 4);
     other_len = runs + ceildiv(runs,4);
     if (other_len < expected_len) {
       meth.compression = EE_CMPR28;
@@ -222,22 +250,30 @@ static encoding_method optimal_encoding_method(const unsigned char* data,
     } else
       test_data = data;
 
-    meth.compression = EE_CMPR26;
-    expected_len = rle_count_runs(test_data, len, 4);
+    /* Try RLE8-8 first so we can also find the length of the longest run.  If
+     * the length of the longest run is lower than or equal to the best
+     * possibility for a sorter RLE, we can safely assume that the number of
+     * runs with that RLE is the same as RLE8-8.
+     */
+    runs = rle_count_runs_max(&longest_run, test_data, len, 256);
+    meth.compression = EE_CMPR88;
+    expected_len = 2*runs;
 
     /* Try RLE4-8 */
-    runs = rle_count_runs(test_data, len, 16);
+    if (longest_run > 16)
+      runs = rle_count_runs(test_data, len, 16);
     other_len = runs + ceildiv(runs, 2);
     if (other_len < expected_len) {
       meth.compression = EE_CMPR48;
       expected_len = other_len;
     }
 
-    /* And RLE8-8 */
-    runs = rle_count_runs(test_data, len, 256);
-    other_len = 2*runs;
+    /* And RLE2-6 */
+    if (longest_run > 4)
+    runs = rle_count_runs(test_data, len, 4);
+    other_len = runs;
     if (other_len < expected_len) {
-      meth.compression = EE_CMPR88;
+      meth.compression = EE_CMPR26;
       expected_len = other_len;
     }
 
@@ -288,14 +324,16 @@ static encoding_method optimal_encoding_method(const unsigned char* data,
   expected_len = ceildiv(len,2);
 
   /* Try RLE8-8 */
-  other_len = 2*rle_count_runs(data, len, 256);
+  runs = rle_count_runs_max(&longest_run, data, len, 256);
+  other_len = runs*2;
   if (other_len < expected_len) {
     meth.compression = EE_CMPR88;
     expected_len = other_len;
   }
 
   /* And RLE4-4 */
-  other_len = rle_count_runs(data, len, 16);
+  if (longest_run > 16)
+    other_len = rle_count_runs(data, len, 16);
   if (other_len < expected_len) {
     meth.compression = EE_CMPR44;
     expected_len = other_len;
