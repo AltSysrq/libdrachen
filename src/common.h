@@ -21,6 +21,9 @@ struct drachen_encoder {
   unsigned char endian32[4], endian16[2];
 
   int error;
+
+  unsigned char* tmp_data;
+  uint32_t tmp_data_len;
 };
 
 static inline uint32_t swab32a(uint32_t value, const unsigned char* shifts) {

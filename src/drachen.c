@@ -53,6 +53,7 @@ drachen_encoder* drachen_alloc_encoder(FILE* file,
   }
 
   encoder->error = 0;
+  encoder->tmp_data = NULL;
 
   return encoder;
 }
@@ -162,6 +163,7 @@ int drachen_free(drachen_encoder* enc) {
   free(enc->prev_frame);
   free(enc->curr_frame);
   free(enc->xform);
+  if (enc->tmp_data) free(enc->tmp_data);
   free(enc);
   return 0;
 }

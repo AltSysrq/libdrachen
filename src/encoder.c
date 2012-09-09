@@ -542,11 +542,11 @@ static int encode_one_element(FILE* out,
                               encoding_method meth,
                               const unsigned char* data,
                               const unsigned char* prev,
-                              uint32_t len) {
+                              uint32_t len,
+                              drachen_encoder* enc) {
   unsigned char len8;
   uint16_t len16;
   const unsigned char* data_to_encode;
-  unsigned char* tmp_data = NULL;
   unsigned i;
   int status;
   unsigned char head =
@@ -589,18 +589,25 @@ static int encode_one_element(FILE* out,
   if (meth.compression != EE_CMPZER) {
     /* If the input data is modified, create a temporary buffer */
     if (meth.sub_fixed || meth.sub_prev) {
-      data_to_encode = tmp_data = malloc(len);
-      if (!tmp_data)
-        return ENOMEM;
+      if (!enc->tmp_data || enc->tmp_data_len < len) {
+        if (enc->tmp_data) free(enc->tmp_data);
+        enc->tmp_data = malloc(len);
+        if (!enc->tmp_data)
+          return ENOMEM;
 
-      memcpy(tmp_data, data, len);
+        enc->tmp_data_len = len;
+      }
+
+      memcpy(enc->tmp_data, data, len);
       if (meth.sub_fixed)
         for (i = 0; i < len; ++i)
-          tmp_data[i] -= meth.fixed_sub;
+          enc->tmp_data[i] -= meth.fixed_sub;
 
       if (meth.sub_prev)
         for (i = 0; i < len; ++i)
-          tmp_data[i] -= prev[i];
+          enc->tmp_data[i] -= prev[i];
+
+      data_to_encode = enc->tmp_data;
     } else {
       /* Use the raw input data */
       data_to_encode = data;
@@ -610,10 +617,6 @@ static int encode_one_element(FILE* out,
     status = (*compressors[meth.compression >> EE_CMP_SHIFT])(out,
                                                               data_to_encode,
                                                               len);
-    /* Free any scratch space used */
-    if (tmp_data)
-      free(tmp_data);
-
     /* Fail if the compressor failed. */
     if (status)
       return status;
@@ -664,7 +667,8 @@ int drachen_encode(drachen_encoder* enc,
                                       currmeth,
                                       enc->curr_frame+start_of_curr,
                                       enc->prev_frame+start_of_curr,
-                                      offset - start_of_curr);
+                                      offset - start_of_curr,
+                                      enc);
       if (enc->error)
         return enc->error;
 
@@ -678,7 +682,8 @@ int drachen_encode(drachen_encoder* enc,
                                   currmeth,
                                   enc->curr_frame+start_of_curr,
                                   enc->prev_frame+start_of_curr,
-                                  enc->frame_size - start_of_curr);
+                                  enc->frame_size - start_of_curr,
+                                  enc);
 
   /* Update "prev" frame */
   swap = enc->prev_frame;
