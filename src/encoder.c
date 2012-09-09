@@ -108,13 +108,11 @@ static encoding_method optimal_encoding_method(const unsigned char* data,
 
   uranz = unsigned_stats(&uminz, &umedz, &umaxz, data, zero, len);
   uranp = unsigned_stats(&uminp, &umedp, &umaxp, data, prev, len);
-  sranz =   signed_stats(&sminz, &smedz, &smaxz, data, zero, len);
-  sranp =   signed_stats(&sminp, &smedp, &smaxp, data, prev, len);
 
   /* First check for the best case, where range is one (which means we can use
    * zero compression).
    */
-  if (uranz == 1 || uranp == 1 || sranz == 1 || sranp == 1) {
+  if (uranz == 1 || uranp == 1) {
     meth.compression = EE_CMPZER;
     if (uranz == 1) {
       meth.is_signed = 0;
@@ -135,6 +133,9 @@ static encoding_method optimal_encoding_method(const unsigned char* data,
 
     return meth;
   }
+
+  sranz =   signed_stats(&sminz, &smedz, &smaxz, data, zero, len);
+  sranp =   signed_stats(&sminp, &smedp, &smaxp, data, prev, len);
 
   /* If all ranges are above 6-bit range, we must use an 8-bit encoding
    * (uncompressed, RLE8-8, RLE4-8, or RLE2-8). sub_fixed will never make a
