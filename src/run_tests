@@ -1,0 +1,20 @@
+#! /bin/sh
+for suite in `ls tests.input`; do
+  echo -n "Testing $suite..."
+  cd tests.input/$suite
+  rm -f *~
+  ../../src/drachencode -efo ../../test *
+  expected_sum=`cat * | md5sum | cut -d ' ' -f 1`
+  cd ../..
+  mkdir -p tests.out/$suite
+  cd tests.out/$suite
+  ../../src/drachencode -df ../../test
+  actual_sum=`cat * | md5sum | cut -d ' ' -f 1`
+  cd ../..
+
+  if test $expected_sum = $actual_sum; then
+    echo " success."
+  else
+    echo " FAILED!"
+  fi
+done
