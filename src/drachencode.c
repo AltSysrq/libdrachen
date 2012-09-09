@@ -188,7 +188,7 @@ static const char*const usage_statement =
   "    evenly divisible into ncols and nrows, respectively. The overall\n"
   "    frame size must be greater than (offset+ncomps*nrows*ncols) bytes.\n"
   "    If no --block-size is given, block size is implicitly set to\n"
-  "    (height*width/4) bytes.\n"
+  "    (width/4) bytes.\n"
   "    If no --img-offset is given, zero is assumed. If --img-num-components\n"
   "    is not given, one is assumed.\n"
   "    Either all or none of these options must be given, except for\n"
@@ -527,14 +527,14 @@ static int do_encode(void) {
       custom_blocks[0].segment_end = co_image_off;
       custom_blocks[0].block_size = co_image_off;
       custom_blocks[1].segment_end = 0xFFFFFFFFu;
-      custom_blocks[1].block_size = co_image_bw*co_image_bh/4;
+      custom_blocks[1].block_size = co_image_bw/4;
       if (custom_blocks[1].block_size < 16)
-        custom_blocks[1].block_size = co_image_bw*co_image_bh;
+        custom_blocks[1].block_size = co_image_bw;
     } else {
       custom_blocks[0].segment_end = 0xFFFFFFFFu;
-      custom_blocks[0].block_size = co_image_bw*co_image_bh/4;
+      custom_blocks[0].block_size = co_image_bw/4;
       if (custom_blocks[0].block_size < 16)
-        custom_blocks[0].block_size = co_image_bw*co_image_bh;
+        custom_blocks[0].block_size = co_image_bw;
     }
 
     drachen_set_block_size(enc, custom_blocks);
