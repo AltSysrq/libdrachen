@@ -32,6 +32,7 @@ static unsigned co_image_off, co_image_comps,
 static unsigned co_block_size;
 static int co_force;
 static const char* co_sequential_output_name;
+static int co_base_son_on_output;
 
 static unsigned co_begin, co_end, co_stride;
 
@@ -111,7 +112,7 @@ static inline void l_debug(const char* message) {
 
 static int do_encode(void), do_decode(void);
 
-static const char short_options[] = "hVfo:O:X:R:C:W:H:b:n:a:z:s:vtwedDZ";
+static const char short_options[] = "hVfo:O:X:R:C:W:H:b:Nn:a:z:s:vtwedDZ";
 #ifdef HAVE_GETOPT_LONG
 static const struct option long_options[] = {
   { "begin",               1, NULL, 'a' },
@@ -129,6 +130,7 @@ static const struct option long_options[] = {
   { "img-num-components",  1, NULL, 'X' },
   { "img-num-rows",        1, NULL, 'R' },
   { "no-warnings",         0, NULL, 'w' },
+  { "number-by-output",    0, NULL, 'N' },
   { "numeric-output-fmt",  1, NULL, 'n' },
   { "output",              0, NULL, 'o' },
   { "show-timing",         0, NULL, 't' },
@@ -207,6 +209,9 @@ static const char*const usage_statement =
   "    --img-offset and --img-num-components, which are always optional.\n"
   "-w, --no-warnings\n"
   "    Suppress any warnings that may be issued.\n"
+  "-N, --number-by-output\n"
+  "    With numeric-output-format, number by the output frame number instead\n"
+  "    of the input frame number.\n"
   "-n, --numeric-output-fmt=format\n"
   "    Instead of using files embedded in the archive on decoding, instead\n"
   "    use format (a printf-compatible string which will receive exactly one\n"
@@ -297,6 +302,10 @@ int main(int argc, char*const* argv) {
 
     case 'w':
       co_nowarn = 1;
+      break;
+
+    case 'N':
+      co_base_son_on_output = 1;
       break;
 
     case 'n':
@@ -676,7 +685,7 @@ int do_decode(void) {
   drachen_encoder* enc = NULL;
   unsigned char* buffer = NULL;
   uint32_t frame_size;
-  unsigned current_frame, data_suffix = 0;
+  unsigned current_frame, data_suffix = 0, output_frame = 0;
   char filename[256];
   clock_t dec_start, dec_end, total_time = 0;
   unsigned long long total_data;
@@ -745,7 +754,8 @@ int do_decode(void) {
       l_reportf("%5d %s", current_frame, filename);
       if (co_sequential_output_name) {
         snprintf(filename, sizeof(filename),
-                 co_sequential_output_name, current_frame);
+                 co_sequential_output_name,
+                 co_base_son_on_output? output_frame++ : current_frame);
         l_reportf(" -> %s", filename);
       }
       l_reportf("\n");
