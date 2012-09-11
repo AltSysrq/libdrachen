@@ -33,6 +33,7 @@ static unsigned co_block_size;
 static int co_force;
 static const char* co_sequential_output_name;
 static int co_base_son_on_output;
+static int co_allow_unsafe_names;
 
 static unsigned co_begin, co_end, co_stride;
 
@@ -112,9 +113,10 @@ static inline void l_debug(const char* message) {
 
 static int do_encode(void), do_decode(void);
 
-static const char short_options[] = "hVfo:O:X:R:C:W:H:b:Nn:a:z:s:vtwedDZ";
+static const char short_options[] = "hVfo:O:X:R:C:W:H:b:uNn:a:z:s:vtwedDZ";
 #ifdef HAVE_GETOPT_LONG
 static const struct option long_options[] = {
+  { "allow-unsafe-names",  0, NULL, 'u' },
   { "begin",               1, NULL, 'a' },
   { "block-size",          1, NULL, 'b' },
   { "decode",              0, NULL, 'd' },
@@ -165,6 +167,10 @@ static const char*const usage_statement =
 #ifndef HAVE_GETOPT_LONG
   "WARNING: Long options are not supported on your system.\n"
 #endif
+  "-u, --allow-unsafe-names\n"
+  "    Even when using filenames from the archive (no --numeric-output-fmt),\n"
+  "    use all names verbatim, other than the empty string. By default,\n"
+  "    all forward slashes and initial dots are replaced before extraction.\n"
   "-a, --begin=index\n"
   "    When decoding, do not output frames before the index'th one.\n"
   "-b, --block-size=size\n"
@@ -310,6 +316,10 @@ int main(int argc, char*const* argv) {
 
     case 'n':
       co_sequential_output_name = strdup(optarg);
+      break;
+
+    case 'u':
+      co_allow_unsafe_names = 1;
       break;
 
     case 'o':
@@ -686,10 +696,10 @@ int do_decode(void) {
   unsigned char* buffer = NULL;
   uint32_t frame_size;
   unsigned current_frame, data_suffix = 0, output_frame = 0;
-  char filename[256];
+  char filename[256], *fn_curr;
   clock_t dec_start, dec_end, total_time = 0;
   unsigned long long total_data;
-  int status = 0;
+  int status = 0, renamed_file;
 
   if (!co_primary_filename || !strcmp(co_primary_filename, "-"))
     infile = stdin;
@@ -747,6 +757,8 @@ int do_decode(void) {
       l_report_extraf("File %s decoded in %u ms\n", filename,
                       (unsigned)((dec_end-dec_start)*1000/CLOCKS_PER_SEC));
 
+    renamed_file = 0;
+
     if (!co_dryrun &&
         current_frame >= co_begin &&
         (!co_end || current_frame < co_end) &&
@@ -756,6 +768,25 @@ int do_decode(void) {
         snprintf(filename, sizeof(filename),
                  co_sequential_output_name,
                  co_base_son_on_output? output_frame++ : current_frame);
+        renamed_file = 1;
+      } else if (filename[0] && !co_allow_unsafe_names) {
+        /* Replace any leading period, and all slashes */
+        if (filename[0] == '.') {
+          filename[0] = '!';
+          renamed_file = 1;
+        }
+        for (fn_curr = filename; *fn_curr; ++fn_curr) {
+          if (*fn_curr == '/' || *fn_curr == '\\') {
+            *fn_curr = '`';
+            renamed_file = 1;
+          }
+        }
+      } else if (!filename[0]) {
+        strcpy(filename, "<empty-string>");
+        renamed_file = 1;
+      }
+
+      if (renamed_file) {
         l_reportf(" -> %s", filename);
       }
       l_reportf("\n");
