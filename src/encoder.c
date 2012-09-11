@@ -139,16 +139,16 @@ static encoding_method optimal_encoding_method(const unsigned char* data,
    */
   if (uranz == 1 || uranp == 1) {
     meth.compression = EE_CMPZER;
-    if (uranz == 1) {
-      meth.is_signed = 0;
-      meth.sub_prev = 0;
-      meth.sub_fixed = !!uminz;
-      meth.fixed_sub = uminz;
-    } else if (uranp == 1) {
+    if (uranp == 1 && (uranz != 1 || uminz)) {
       meth.is_signed = 0;
       meth.sub_prev = 1;
       meth.sub_fixed = !!uminp;
       meth.fixed_sub = uminp;
+    } else if (uranz == 1) {
+      meth.is_signed = 0;
+      meth.sub_prev = 0;
+      meth.sub_fixed = !!uminz;
+      meth.fixed_sub = uminz;
     } else {
       /* Signed should never occur, since it is always equivalent to unsigned
        * for zero bits of information.
