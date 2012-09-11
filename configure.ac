@@ -1,5 +1,5 @@
 AC_PREREQ([2.50])
-AC_INIT([libdrachen], [0.9.2], [jasonlingle@yahoo.com])
+AC_INIT([libdrachen], [0.9.3], [jasonlingle@yahoo.com])
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
 LT_PREREQ([1.5])
