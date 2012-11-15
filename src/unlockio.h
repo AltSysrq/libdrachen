@@ -12,46 +12,46 @@
 
 #include <stdio.h>
 
-#ifdef HAVE_GETC
+#ifdef HAVE_GETC_UNLOCKED
 #define getc getc_unlocked
 #endif
-#ifdef HAVE_GETCHAR
+#ifdef HAVE_GETCHAR_UNLOCKED
 #define getchar getchar_unlocked
 #endif
-#ifdef HAVE_PUTCHAR
+#ifdef HAVE_PUTCHAR_UNLOCKED
 #define putc putc_unlocked
 #endif
-#ifdef HAVE_CLEARERR
+#ifdef HAVE_CLEARERR_UNLOCKED
 #define clearerr clearerr_unlocked
 #endif
-#ifdef HAVE_FEOF
+#ifdef HAVE_FEOF_UNLOCKED
 #define feof feof_unlocked
 #endif
-#ifdef HAVE_FERROR
+#ifdef HAVE_FERROR_UNLOCKED
 #define ferror ferror_unlocked
 #endif
-#ifdef HAVE_FILENO
+#ifdef HAVE_FILENO_UNLOCKED
 #define fileno fileno_unlocked
 #endif
-#ifdef HAVE_FFLUSH
+#ifdef HAVE_FFLUSH_UNLOCKED
 #define fflush fflush_unlocked
 #endif
-#ifdef HAVE_FGETC
+#ifdef HAVE_FGETC_UNLOCKED
 #define fgetc fgetc_unlocked
 #endif
-#ifdef HAVE_FPUTC
+#ifdef HAVE_FPUTC_UNLOCKED
 #define fputc fputc_unlocked
 #endif
-#ifdef HAVE_FREAD
+#ifdef HAVE_FREAD_UNLOCKED
 #define fread fread_unlocked
 #endif
-#ifdef HAVE_FWRITE
+#ifdef HAVE_FWRITE_UNLOCKED
 #define fwrite fwrite_unlocked
 #endif
-#ifdef HAVE_FGETS
+#ifdef HAVE_FGETS_UNLOCKED
 #define fgets fgets_unlocked
 #endif
-#ifdef HAVE_FPUTS
+#ifdef HAVE_FPUTS_UNLOCKED
 #define fputs fputs_unlocked
 #endif
 
